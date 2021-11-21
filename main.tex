@@ -1,0 +1,758 @@
+\documentclass[12pt]{article}
+
+\usepackage[margin=2cm]{geometry}
+\usepackage{eurosym}
+
+
+\usepackage[utf8]{inputenc}
+
+\usepackage[nottoc]{tocbibind}
+
+\usepackage{url}
+\usepackage[spanish, es-tabla]{babel}
+\usepackage{graphicx}
+
+\usepackage{float}
+\usepackage{hyperref}
+\usepackage{blindtext}
+
+\usepackage{color}
+\usepackage{epsfig}
+\usepackage{multirow}
+\usepackage{multirow, array} % para las tablas
+\usepackage{colortbl}
+\usepackage[table]{xcolor}
+%Gantt chart
+\usepackage{pdflscape}
+\usepackage{pgfgantt}
+
+\usepackage{amssymb, amsmath, amsbsy} % librerias ams
+
+\makeatletter
+\renewcommand{\paragraph}{\@startsection{paragraph}{4}{0ex}%
+   {-3.25ex plus -1ex minus -0.2ex}%
+   {1.5ex plus 0.2ex}%
+   {\normalfont\normalsize\bfseries}}
+\makeatother
+
+\stepcounter{secnumdepth}
+\stepcounter{tocdepth}
+
+\hypersetup{
+colorlinks   = false, 
+urlcolor     = teal, 
+linkcolor    = teal, 
+citecolor   = teal
+}
+\title{Refactor Data Recovery}
+\author{Patricia Naranjo Gallardo}
+\date{February 2021}
+
+
+\begin{document}
+% DECLARACIONES
+\definecolor{lightgray}{gray}{0.9}
+    \begin{titlepage}
+    \vspace*{\fill}
+    \begin{center}
+
+    \LARGE
+    \textbf{Refactor Data Recovery}
+
+    \vspace{0.5cm}
+    \Large
+    Gestión de proyectos(GEP) \\
+    Entrega final
+    
+    \vspace{0.5cm}
+    
+    \vspace*{\fill}
+    
+    \Large
+    \textbf{Patricia Naranjo Gallardo}
+    
+    \vspace*{\fill}
+    
+    
+    \end{center}
+    
+    \vspace*{\fill}
+    \vfill
+    \begin{center}
+
+    \includegraphics[width=0.17\textwidth]{./images/logo/logo_upc.png}
+    \includegraphics[width=0.22\textwidth]{./images/logo/logo_fib.png}
+    \includegraphics[width=0.17\textwidth]{./images/logo/logo_reach.png}
+
+    \vspace{1cm}
+    
+    Director: Xavier Gómez Ponce\\
+    Ponente: Juan Jose Costa Prats\\
+    Especialidad: Ingeniería de Computadores\\
+   
+    \vspace{1cm}
+    
+    Projecto Final de carrera -  Grado en ingeniería informática \\ 
+    Enero 2022
+    
+    \end{center}
+    \end{titlepage}
+    
+    \tableofcontents
+    \listoffigures
+    \listoftables
+    \newpage
+    \section{Contexto y alcance}\label{sec:Contexto y alcance}
+    
+    \subsection{Contexto}
+
+   Este proyecto es un trabajo de final de grado para la carrera de ingeniería informática realizada en la Facultad d'informática de Barcelona. El proyecto se realizará para la empresa Giesecke + Devirent.
+    
+    \subsubsection{Introducción}
+    Es sorprendente ver lo rápido que cambia la tecnología y lo mucho que el ser humano depende de ella. Solo pensar que hace 70 años solo se podía pagar con dinero en efectivo y ahora se puede pagar con el móvil o incluso con el propio reloj, hace reflexionar sobre como lo haremos de aquí un par de décadas.  Ahora mismo poca gente estaría dispuesta a dejar su móvil a un lado o volver a pagar en efectivo en vez de con tarjeta. Por ese motivo la mejora continua y el incremento de seguridad en estos ámbitos es muy importante para seguir avanzando.
+    
+    \vspace{4mm}
+    
+    Giesecke+Devirent Mobile Security Iberia S.A ~\cite{1} es una sucursal de la empresa de origen alemán fundada en el 1852 por Hermann Giesecke y Alphonse Devrient en Leipzig. En sus inicios se especializaron en la impresión de billetes. En 1948, el edificio de la compañía fue destruido y se tuvieron que reubicar en Múnich, donde la empresa se rediseñó. En 1968 desarrollaron, juntamente con la industria del banco europeo, el sistema eurocheque, lo cual les introdujo en el negocio de las tarjetas electrónicas. En 1989, G+D inventó el “SIM plug-in”, aceptado como estándar mundial para dar formato a las tarjetas SIM.  En 2001, G+D se empezó a introducir en el negocio de la seguridad de la información. Poco después entro en el sector empresarial de seguridad móvil, donde se ofrece soluciones que comprenden elementos seguros, plataformas de software y servicios. ~\cite{2}
+    
+    \vspace{4mm}
+    
+    Actualmente, una de las soluciones que presenta G+D son sistema operativos para tarjetas inteligentes. Un sistema operativo es el software que hace posible la comunicación entre el hardware y el usuario. Una tarjeta inteligente es una fragmento de plástico que incorpora un chip con un microprocesador(CPU). Este chip es capaz de almacenar y procesar datos con sistemas de alta seguridad que impiden la manipulación o robo de estos. Se ofrecen soluciones principalmente para los sectores de telecomunicaciones, como serían las SIMs de lo móviles, de seguridad, como serían tarjetas de débito o crédito, y de automoción, como sería una SIM especifica para comunicar datos de control del vehículo a la sucursal. Uno de los productos de la empresa es un sistema operativo base con todas las funcionalidades en testeo continuo, del cual luego solo se activan las necesitadas por el cliente y el sector.
+    
+    \vspace{4mm}
+    
+    Durante el proceso de producción de una tarjeta inteligente, cada chip se elabora con sus propios datos. Los datos propios de la tarjeta son un conjunto de llaves o certificados que el fabricante o el desarrollador del sistema operativo ha creado y necesita que estén siempre en la tarjeta. Cada vez que se quiere hacer una actualización del sistema operativo o personalizar la tarjeta con unos datos concretos, se requiere volver a cargar el sistema operativo. Obviamente no es un proceso tan sencillo como suena, ya que la tarjeta está protegida para que nadie pueda sobre escribir su código. Para hacer esto posible se desarrolló un componente llamado ITL. 
+    
+    \vspace{4mm}
+    \clearpage
+    Este componente lo podemos ver como un pequeño sistema operativo que después de salir de la producción de la tarjeta será imposible cambiar. Este pequeño sistema operativo ocupa un espacio fijo en memoria y hace posible estas actualizaciones del sistema operativo. Para lograr dichas actualizaciones mínimo tendrá que hacer tres cosas: autenticarse con quien está intentando actualizar el sistema operativo para asegurarse que no es ningún agente malicioso, decirle al nuevo sistema operativo cuales son las posiciones de memoria donde debería situarse y alojar los datos propios de la tarjeta para posteriormente poder ser recuperados. Estos datos propios de la tarjeta nadie los puede ver y tienen que estar en ella desde el principio y no borrarse nunca. 
+    
+    \vspace{4mm}
+    
+    Por lo tanto, cuando sobrescribimos el sistema operativo necesitamos guardar estos datos en la memoria del componente para no perderlos. Se podría ver como una copia de seguridad de los datos propios de la tarjeta. Guardar y recuperar estos datos en el sistema operativo lo hace otro componente llamado Data Recovery.
+    
+    \vspace{4mm}
+    
+    La razón de este proyecto es una nueva implementación de este componente.
+    
+    % enter % \vspace{4mm}
+        
+    \subsubsection{Definiciones y conceptos propios}
+    Hay algunas definiciones que son claves para entender está trabajo ya sean porque son de carácter propio de la empresa o porque son técnicas de este ámbito.
+    
+     \paragraph{SmartCard o tarjeta inteligente}
+    
+    Una smartCard o en castellano tarjeta inteligente son la última innovación en la familia de las tarjetas de identificación. Se caracterizan por constar de un circuito integrado incrustado en el cuerpo de la tarjeta que tiene componentes para transmitir, almacenar y procesar datos. Los datos pueden ser transmitidos por contacto con la superficie de la tarjeta, que sería cuando insertamos la tarjeta en el lector, o por un campo electromagnético, cuando pagamos por contactless. ~\cite{3}
+
+    \paragraph{SE}
+
+    Un SE cuyas siglas significan Secure Element es una plataforma a prueba de manipulaciones, normalmente es un microcontrolador que forma parte de un chip. Es capaz de alojar aplicaciones de forma segura y sus datos confidenciales y criptográficos, como por ejemplo claves criptográficas, de acuerdo con las reglas y requisitos de seguridad establecidos.
+    Hay diferentes tipos de SE: los SE integrados, SIM/UICC, smart micro SD y integrados en tarjetas inteligentes.~\cite{4}
+
+    \paragraph{Global Platform}
+
+    Son unos estándares para proteger servicios digitales y dispositivos. ~\cite{5}
+    \clearpage
+    \paragraph{ITL}
+    
+    Las siglas de ITL son Image Trusted Loader. Es un componente de nuestro sistema operativo que se encarga de hacer actualizaciones.
+    El desarrollo de este componente salió a raíz del sector de comunicaciones. Las SIM son de usar y tirar, uno se cambiaba de compañía y le dan una SIM nueva. Hoy en día, existen las eSIM, las cuales vienen integradas al dispositivo. Sin este avance, los smartwatches con eSIM no podrían haber llegado a existir. 
+    
+    \vspace{4mm}
+    
+    El problema de un SE integrado es que no se puede remplazar. Por eso el desarrollo de este componente es clave por dos motivos. El primer motivo es que el cliente no nos tiene que esperar para ir haciendo pruebas sobre su producto, supongamos que estamos haciendo el sistema operativo para un smartwatch de samsung. Samsung no podría empezar la producción, soldando las eSIM, hasta que nosotros le diéramos el sistema operativo definitivo, de esta manera se puede ir desarrollando en paralelo. El segundo motivo son actualizaciones en la calle, siguiendo el ejemplo anterior, imaginemos que encontramos un error en el sistema operativo o simplemente lo hemos mejorado, sin este componente no podríamos hacer la actualización sin desoldar la eSIM, cosa que sería muy incomoda para el cliente y los usuarios, de esta manera se podría hacer sin problema en la próxima actualización del sistema operativo.
+   
+
+    \paragraph{Full Reflash}
+
+    Un Full Reflash es un concepto propio de la empresa. Se utiliza para hacer referencia a una actualización total del sistema operativo.
+    
+    \paragraph{Max Init}
+    
+    Es un concepto propio de la empresa. Es un fichero que contiene en formato binario el sistema operativo actualizado con los datos personalizados que se deseen.
+    
+    
+    \paragraph{Data Recovery}
+
+    Esta funcionalidad es el objetivo principal de este proyecto. Es necesaria para cuando queremos que la tarjeta tenga datos propios que no queremos que se pierdan y a la vez queremos tener la funcionalidad de poder actualizar el sistema operativo.
+
+    \subsubsection{Problema a resolver}
+    En este apartado se explica de donde salió la necesidad de la modificación de dicha funcionalidad.
+    
+    \vspace{4mm}
+    
+    Ésta funcionalidad se hizo como primera versión, con un tiempo muy limitado y unos requisitos muy básicos para un cliente que exigía poder guardar datos únicos para cada tarjeta, a la vez que permitir que el sistema operativo se pudiera actualizar. Al ser la primera versión se hizo de una manera muy ineficiente y que ocupa mucho espacio en memoria. Cada dato que se quiera guardar, actualmente, ocupa una página de memoria. Una pagina de memoria son 256 bytes y una llave son 16 bytes. Ahora mismo se esta guardando una llave donde cabrían 27. A más a más, una smart card tiene un tamaño de memoria muy limitado y las nuevas funcionalidades requieren cada vez más memoria por lo que es vital reducir el tamaño de la memoria de actualización.
+
+    \subsubsection{Actores implicados}
+    En este apartado se explica a quién va dirigido el producto, quien lo usará y quien se beneficiará de su resultado.
+    
+    \paragraph{Público al que va dirigido}
+    
+	Este producto va dirigido a los clientes directos de G+D que trabajan con smartCards integradas. Aquellos que en su producto quieran guardar datos específicos de la tarjeta a la vez que tener disponible la opción de actualizar el sistema operativo. 
+    
+    \paragraph{Público que hará uso del producto}
+
+    Los clientes de G+D que pidan está funcionalidad añadida en sus productos. Si es un fabricante de teléfono, será este el que le dará uso e indirectamente todos los clientes que compren dicho teléfono con esta funcionalidad implementada.
+
+    \paragraph{Benefactor}
+
+    Los beneficios de este producto irán a la empresa para la cual se implementa, G+D.
+
+    \subsection{Justificación}
+    
+    Este proyecto ha sido propuesto por G+D. Debido a que el código del sistema operativo es cerrado y de propiedad de la empresa, la cual es pionera de este componente y a la espera de que se conceda la patente de dicha funcionalidad, no hay más referencias que la antigua implementación. Se mejorará la solución de la antigua implementación y probablemente se basará en la gestión de la memoria virtual que hace otro componente de nuestro sistema operativo.
+    
+    \vspace{4mm}
+    
+    La implementación que se mejorará está dentro de un código complejo y extenso al que se le habrá de dedicar mucho tiempo de entendimiento. En consecuencia, el análisis del propio código se hará dentro de este proyecto teniendo en cuenta que es una tarea prolongada.
+    
+    \vspace{4mm}
+    
+    Como la parte más crítica y necesaria de la implementación es la gran cantidad de memoria que se gasta por dato guardado, solo se centraran recursos en rediseñar la gestión de memoria y su entorno. El resto de código se evitará tocarlo, siempre y cuando no sea necesario.
+    \clearpage
+    \subsection{Alcance}
+
+	\subsubsection{Objetivos y subobjetivos}
+	El principal objetivo de este proyecto es analizar, diseñar,  implementar y evaluar un sistema que permita guardar datos de manera eficiente en una actualización del sistema operativo de una tarjeta inteligente.
+	
+	
+	\subparagraph{Análisis}
+	\begin{itemize}
+        \item Estudiar la implementación anterior del Data Recovery
+        \item Estudiar cómo funciona el ITL y su gestión de la memoria
+        \item Estudiar métodos de gestión de memoria eficiente 
+    \end{itemize}
+    
+    
+    \subparagraph{Diseño}
+	\begin{itemize}
+        \item Boceto de implementación: estructura, como se va a gestionar la memoria, que datos se van a poder guardar y como se va a poder acceder a ellos.
+    \end{itemize}
+    
+    \subparagraph{Implementación}
+	\begin{itemize}
+        \item Implementar la propuesta de implementación.
+    \end{itemize}
+
+    \subparagraph{Evaluación}
+	\begin{itemize}
+        \item Testear que la gestión de memoria es más eficiente que la original, es decir, caben más de un objeto por página, y no hay regresiones.
+        \item Arreglar los errores vistos en la parte de testeo.
+    \end{itemize}	
+
+	\subsubsection{Requisitos}
+	Requisitos necesarios para garantizar la calidad del producto final.
+	\begin{itemize}
+        \item En cada página de ITL se han de poder alojar más que únicamente un dato, siempre y cuando el tamaño del objeto más la cabecera sea más pequeño que una página.
+    \end{itemize}
+	\subsubsection{Obstáculos y riesgos potenciales}\label{sec:riesgos}
+	Hay algunos obstáculos que podrían hacer que el proyecto no se acabara.
+	\begin{itemize}
+        \item \textbf{Fecha de entrega.} El proyecto tiene que estar acabado para una fecha concreta. Podría ser que si no se cumple con las entregas parciales no se llegue a tiempo a la finalización del trabajo.
+        \item \textbf{Concesión de la patente.} El trabajo tiene código especifico de nuestro sistema operativo. La patente se está tramitando y debería estar concedida para la entrega de este proyecto, pero podría ser que se retrasara. Si no estuviera la patente se tendría que reestructurar toda la memoria y se tendrían que omitir las cosas confidenciales y que no estén bajo la patente aún.
+        \item \textbf{Conocimiento del código interno.} Hay un gran trabajo de análisis y muchas dependencias con otros componentes, es un sistema operativo de unos 25.000 archivos y habría la posibilidad que si no se interiorizan todos los conocimiento y archivos relevantes a este trabajo, no pueda ofrecer una solución a la antigua implementación.
+    \end{itemize}
+
+    \subsection{Metodología y rigor}
+    \subsubsection{Metodología de trabajo}
+    Para este proyecto se utilizará una metodología ágil llamada Scrum~\cite{6}. Esta metodología es la que hoy en día utilizan la mayoría de empresas de i+d. 
+    
+    Consiste en marcar unos objetivos que aporten valor al producto a corto plazo. Este corto plazo es estándar y siempre será el mismo, al cual se le llama Sprint. Los sprints serán de dos semanas.
+    
+    \vspace{4mm}
+
+    Inicialmente se crearan los tickets para conseguir acabar el proyecto a tiempo, obviamente dejando un margen razonable para complicaciones. Antes del inicio de cada Sprint, como marca la metodología, se deberá revisar el backlog y decidir que tickets son más prioritarios para entrar. Se harán reunión cortas para hacer seguimiento del estado y en caso de estar bloqueado poder pedir ayuda. 
+    Cada ticket tendrá su parte de desarrollo y testeo, y deberá estar acabado y revisado para el final del sprint.
+    
+    \subsubsection{Herramientas de seguimiento}	
+    Las herramientas que se usarán:
+    \begin{itemize}
+        \item \textbf{Jira:} para la creación de tickets y la gestión de los sprints.
+        \item \textbf{Bitbucket y git:} para el control de versiones. Se tendrá una rama principal y se irán añadiendo partes funcionales.
+    \end{itemize}
+
+    \subsubsection{Método de validación}
+    Todos los tickets serán validados por el Product owner(PO) de nuestro equipo y las diferentes implementaciones tendrán que ser revisadas por los seniors mediante pull-requests. Un pull-request es una solicitud de integración donde una serie de personas ha de verificar que la calidad de la funcionalidad añadida es la adecuada para ser introducida en el código general. Las personas que revisan está integración verifican a través de revisión de código. Las pruebas necesarias para el funcionamiento i mejora del componente las habrá hecho el desarrollador antes de abrir el pull-request. 
+    \clearpage
+    \section{Planificación temporal}\label{sec:Planificación temporal}
+    En este apartado se explicará que tareas iniciales se proponen para este proyecto, la estimación y la gestión de riesgos. La fecha de inicio del proyecto es el 20 de septiembre de 2021. La fecha de finalización es el 21 de enero de 2022. La duración prevista es de 90 días. Cada día se le dedicará 6 horas, lo que harán un total de 540 horas. La semana prevista para la lectura del trabajo realizado sería la del 24 de enero. 
+    \subsection{Tareas y estimaciones}\label{sec:tareas}
+    Contaremos de diferentes tareas. Cada tarea irá identificada para su mayor entendimiento del posterior apartado. Las tareas que engloban otras, es decir que serían una épica, van identificadas con un 0. Las tareas de reuniones serán RX, las de Documentación DX y las de implementación DRX.
+    \begin{itemize}
+        \item \textbf{R0. Reuniones de seguimiento}: para poder hacer mejora continua se ha de informar a gente que tiene conocimiento del proyecto por si se debiera cambiar algo que no se ha tenido en cuenta. 
+            \begin{itemize}
+                \item \textbf{R1. Reuniones de seguimiento con el ponente}: se realizaran cada dos semanas reuniones de seguimiento con el ponente para informar del estado y poder rectificar a tiempo en caso de algún contratiempo. \textbf{Estimación}:  Son 18 semanas, lo que serían 9 reuniones de unos 20 minutos cada una, lo que serían un total de \textbf{3 horas}.
+                \item \textbf{R2. Reuniones de seguimiento con el director}: se realizaran reuniones actualización de estado y técnicas cada semana.\textbf{Estimación}:  Son 18 semanas, serían 18 reuniones de 15 minutos. Total de  de \textbf{4,5 horas}.
+                \item \textbf{R3. Reuniones de seguimiento con el senior de la empresa}: en nuestra empresa tenemos un senior que tiene que dar el visto bueno de todas las integraciones. Se harán 2 reuniones. Una de explicación y guía. Otra de presentación y aceptación de la propuesta de integración. \textbf{Estimación}:  Cada reunión sería de 1 hora. Total de \textbf{2 horas}.
+            \end{itemize}
+        \item \textbf{D0. Documentación}: Tareas para documentar el proyecto.
+            \begin{itemize}
+                \item \textbf{D1.0. Documentación inicial}: toda la documentación que se pueda hacer antes de empezar a desarrollar. 
+                    \begin{itemize}
+                        \item \textbf{D1.1. Estudio de como documentar}: se hará una búsqueda e información inicial de cual es la mejor manera de documentar el proyecto. \textbf{Estimación}: total de  de \textbf{35 horas}.
+                        \item \textbf{D1.2. Documentación de la introducción}: donde se documenta el contexto y el alcance del proyecto. \textbf{Estimación}:  total de  de \textbf{15,50 horas}.
+                        \item \textbf{D1.3. Documentación de la planificación temporal}: donde se describen las tareas, su estimación y la gestión de riesgos \textbf{Estimación}: total de \textbf{10 horas}.
+                        \item \textbf{D1.4. Documentación del presupuesto y sostenibilidad}: donde se hace una estimación del presupuesto y se evalúa la sostenibilidad en el ámbito económico, social y ambiental. \textbf{Estimación}:  total de \textbf{14,50 horas}.
+                    \end{itemize}
+                \item \textbf{D2. Documentación diaria}: cada día trabajado en el desarrollo, al finalizar, se redactará lo hecho ese día para poder hacer un seguimiento de como avanzó el proyecto. \textbf{Estimación}: el análisis y desarrollo se empezará el 11 de octubre y se acabará el 7 de enero. Son 13 semanas, que son 65 días trabajados, cada día se dedicarán 5 minutos. Total de  de \textbf{5,5 horas}.
+                \item \textbf{D3. Documentación semanal}: cada semana trabajada en el desarrollo, al finalizar, se juntará y adaptará lo redactado diariamente esa semana. \textbf{Estimación}: son 13 semanas, y dedicación de 20 minutos. Total de  de \textbf{4,5 horas}.
+                \item \textbf{D4. Documentación final}: con la documentación diaria y semanal se espera que la documentación final sea solo revisar, añadir si falta alguna cosa y las conclusiones del trabajo. \textbf{Estimación}:  total de \textbf{20 horas}.
+            \end{itemize}
+        \item \textbf{DR0. Implementación}: como ya se mencionó en el apartado de \textit{1.4.1 Metodología} se utilizará Jira para la creación de tickets y gestión de sprints. Para ello se han creado diferentes storys y tasks numerados. Para ello se ha creado una épica que englobará todos los tickets de dicha implementación. Como se utilizará scrum cada tarea tendrá su título, su AC \textit{(Acceptance criteria)} y su descripción. 
+        \begin{itemize}
+            \item \textbf{DR1. Analizar gestión de memoria en SMMU}
+                \begin{itemize}
+                    \item \textbf{Titulo}: [DR2.0] Analizar funcionamiento de la memoria SMMU
+                    \item \textbf{AC}: Entender y documentar en este tiquet como funcionan los indices y punteros de la memoria SMMU.
+                    \item \textbf{Descripción}: Entender y documentar en este tiquet como funcionan los indices y punteros de la memoria SMMU. SMMU es una memoria virtual que tenemos en nuestra empresa.
+                    \item \textbf{Estimación}: total de \textbf{40 horas}.
+                \end{itemize}
+            \item \textbf{DR2. Analizar implementación antigua}
+                \begin{itemize}
+                    \item \textbf{Titulo}: [DR2.0] Analizar implementación antigua
+                    \item \textbf{AC}: La antigua implementación entendida y documentada en el ticket.
+                    \item \textbf{Descripción}: Analizar la antigua implementación del Data Recovery. Toda implementación de una unidad funcional esta bajo una \textit{feature} ( variable global que engloba una unidad funcional de un sistema de software que satisface un requisito). 
+                    \item \textbf{Estimación}: total de \textbf{30 horas}.
+                \end{itemize}
+            \item \textbf{DR3. Propuesta de implementación}
+                \begin{itemize}
+                    \item \textbf{Titulo}: [DR2.0] Propuesta de la nueva implementación
+                    \item \textbf{AC}: Propuesta aceptada por los seniors de la empresa. 
+                    \item \textbf{Descripción}: Hacer una propuesta de la nueva implementación teniendo en cuenta:
+                        \begin{itemize}
+                            \item Cuando y que se tiene que escribir en la memoria ITL?
+                            \item Como se escribe en memoria?
+                            \item Qué estructura usamos y que componentes debería tener para una gestión de la memoria óptima?
+                        \end{itemize}
+                    \item \textbf{Estimación}: total de \textbf{30 horas}.
+                \end{itemize}
+            \item \textbf{DR4. Implementación}
+                \begin{itemize}
+                    \item \textbf{Titulo}: [DR2.0] Implementar Data Recovery 2.0
+                    \item \textbf{AC}: DR2.0 funcionando sin causar regresiones.
+                    \item \textbf{Descripción}: Implementar lo propuesto en DR3. Testear que no haya causado regresiones.
+                    \item \textbf{Estimación}: total de \textbf{60 horas}.
+                \end{itemize}
+            \item \textbf{DR5. Testeo especifico}
+                \begin{itemize}
+                    \item \textbf{Titulo}: [DR2.0] Desarrollar un test
+                    \item \textbf{AC}: Test que teste que caben más objetos en la memoria ITL.
+                    \item \textbf{Descripción}: Desarrolla un test que testee que los objetos pequeños ocupan menos de una pàgina y que caben más objetos en las mismas páginas.
+                    \item \textbf{Estimación}: total de \textbf{50 horas}.
+                \end{itemize}
+             \item \textbf{DR6. Bugfixing y mejoras}
+                \begin{itemize}
+                    \item \textbf{Titulo}: [DR2.0] Bugfixing y mejoras en la implementación
+                    \item \textbf{AC}: Cambiar/Mejorar los fallos o mejoras que se han visto con el testero de DR5.
+                    \item \textbf{Descripción}: Después de el test desarrollado en DR5, mirar que debería ser cambiado o mejorado.
+                    \item \textbf{Estimación}: total de \textbf{40 horas}.
+                \end{itemize}   
+            \item \textbf{DR7. Documentar componente en la empresa}
+                \begin{itemize}
+                    \item \textbf{Titulo}: [DR2.0] Documentar nueva implementación
+                    \item \textbf{AC}: Documentación acabada.
+                    \item \textbf{Descripción}: Crear nueva documentación o actualizar la antigua.
+                    \item \textbf{Estimación}: total de \textbf{16 horas}.
+                \end{itemize}                
+        \end{itemize}
+    \end{itemize}
+     \subsubsection{Dependencias temporales}
+     
+      \begin{itemize}
+        \item \textbf{R0. Reuniones de seguimiento}
+            \begin{itemize}
+                \item Las reuniones identificadas como \textit{R1, R2} se efectuaran respectivamente cada dos semanas y cada semana, y no tendrán dependencia ninguna.
+                \item Las reuniones identificadas como \textit{R3} solo serán dos, y tampoco tendrán dependencia con las otras.
+            \end{itemize}
+        \item \textbf{D0. Documentación}
+            \begin{itemize}
+                \item La tareas de documentación identificadas como \textit{D1.1, D1.2, D1.3, D1.4} englobadas en D1, y la \textit{D4} tendrán las siguientes dependencias: \textbf{D1 $\rightarrow$ D4}; \textbf{D1.1 $\rightarrow$ D1.2 $\rightarrow$ D1.3 $\rightarrow$ D1.4} 
+                \item La tareas de documentación identificadas como \textit{D2, D3} se efectuaran entre D1 y D4, pero se harán diaria/semanalmente: \textbf{D1 $\rightarrow$ D2/D3 $\rightarrow$ D4}
+            \end{itemize}
+        \item \textbf{DR0. Analisis y desarrollo} dependencias: \textbf{DR1/DR2 $\rightarrow$ DR3 $\rightarrow$ DR4 $\rightarrow$ DR5 $\rightarrow$ DR6}. DR7 podría hacerse concurrentemente con DR4, DR5 y DR6 o al finalizar todas: \textbf{DR6 $\rightarrow$ DR7}. DR1 podría hacerse concurrentemente con DR2.
+    \end{itemize}
+    \clearpage
+     \subsubsection{Resumen de tareas}
+    En esta sección consta de la \textit{Tabla \ref{tab:tareas}} donde se enumeran y resumen las tareas para un claro entendimiento.
+
+    \begin{table}[H]
+    \begin{center}
+        \begin{tabular}{ |l|l|r|p{2,5cm}| } \hline
+    Código&Título&Estimación (h)&Dependencia temporal \\\hline
+    R1&Seguimiento con el ponente&3,0&-\\\hline
+    R2&Seguimiento con el director&4,5&-\\\hline
+    R3&Seguimiento con el senior de la empresa&2,0&-\\\hline
+    D1.1&Estudio de como documentar&35,0&-\\\hline
+    D1.2&Documentación de la introducción&15,5&D1.1\\\hline
+    D1.3&Documentación de la planificación temporal&10,0&D1.2\\\hline 
+    D1.4&Documentación del presupuesto y sostenibilidad&14,5&D1.3\\\hline
+    D2& Documentación diaria&5,5&D1.1, D1.2, D1.3, D1.4\\\hline
+    D3& Documentación semanal&4,5&D1.1, D1.2, D1.3, D1.4\\\hline
+    D4& Documentación final&20,0&D2, D3\\\hline
+    DR1&Analizar gestión de memoria en SMMU&40,0&D0\\\hline
+    DR2&Analizar implementación antigua&30,0&D0\\\hline
+    DR3&Propuesta de implementación&30,0&DR1, DR2\\\hline
+    DR4&Implementación&60,0&DR3\\\hline
+    DR5&Testeo especifico&50,0&DR4\\\hline
+    DR6&Bugfixing y mejoras implementación&40,0&DR5\\\hline
+    DR7&Documentar componente en la empresa&16,0&DR6\\\hline
+    \end{tabular}
+    \caption{Resumen tareas}
+    \label{tab:tareas}
+    \end{center}
+  \end{table}
+  
+    \subsection{Estimaciones}
+    En esta sección mostramos un gráfico de Gantt para que se vean más visualmente las dependencias temporales y los tiempos entre tareas. Se muestra en la \textit{Figura \ref{fig:gant}}.
+\clearpage
+
+    \begin{landscape}
+ \begin{figure}[H]
+        \centering
+    
+\begin{ganttchart}[
+     vgrid={*{9}{draw=none},dotted},
+    y unit title=0.5cm,
+    y unit chart=0.5cm,
+    x unit=1.4mm,
+    time slot format=isodate,
+    title/.append style={shape=rectangle, fill=black!5},
+    title height=1,
+    bar/.append style={fill=green!90},
+    bar height=.6,
+    bar label font=\normalsize\color{black!50},
+    group top shift=.6,
+    group height=.3,
+    group peaks height=.2
+  ]{2021-09-20}{2022-01-28}
+  \gantttitlecalendar{year, month=name} \\
+
+  \ganttset{progress label text={},
+       bar incomplete/.append style={fill=green!10},
+       group/.append style={draw=black, fill=green},} 
+  \ganttgroup{Gestión del proyecto}{2021-09-20}{2022-01-28} \\
+    \ganttbar[progress=00, name=D1.1]{D1.1 }{2021-09-20}{2021-09-27} \\
+    \ganttlinkedbar[progress=00, name=D1.2]{D1.2.}{2021-09-28}{2021-09-30} \\
+    \ganttlinkedbar[progress=00, name=D1.3]{D1.3.l}{2021-10-04}{2021-10-05} \\
+    \ganttlinkedbar[progress=00, name=D1.4]{D1.4.}{2021-10-06}{2021-10-08} \\
+    \ganttlinkedbar[progress=00, name=D4]{D4.}{2021-12-27}{2021-12-30} \\
+    \ganttlinkedbar[progress=00, name=PP]{Presentación proyecto}{2022-01-24}{2022-01-28} \\
+    \ganttbar[progress=00, name=D2]{Documentación continua}{2021-09-20}{2022-01-21} \\
+    \ganttbar[progress=00, name=R]{Reuniones de seguimiento}{2021-09-20}{2022-01-21} \\
+    
+    
+  \ganttset{bar incomplete/.append style={fill=red!10},
+    group/.append style={draw=black, fill=red},}
+    \ganttgroup{Tareas específicas del proyecto}{2021-09-20}{2021-12-20} \\
+    \ganttbar[progress=00, name=DR1]{DR1.}{2021-10-11}{2021-10-19} \\
+    \ganttbar[progress=00, name=DR2]{DR2. }{2021-10-25}{2021-10-29} \\
+    \ganttlinkedbar[progress=00, name=DR3]{DR3. }{2021-11-01}{2021-11-05} \\
+    \ganttlinkedbar[progress=00, name=DR4]{DR4.}{2021-11-08}{2021-11-19} \\
+    \ganttlinkedbar[progress=00, name=DR5]{DR5. }{2021-11-22}{2021-12-03} \\
+    \ganttlinkedbar[progress=00, name=DR6]{DR6. }{2021-12-06}{2021-12-17} \\
+    \ganttbar[progress=00, name=DR7]{DR7.}{2021-12-20}{2021-12-20} \\
+    
+    %\ganttlink[link mid=0.25]{pm3}{imp2}
+`    
+\end{ganttchart}
+        \caption{Gráfico de Gantt chart. Elaboración propia con Latex}
+        \label{fig:gant}
+    \end{figure}
+\end{landscape}
+
+    \subsection{Gestión del riesgo}
+    Hay algunos obstáculos que deberíamos tener en cuenta, como se explica en la \textit{Sección \ref{sec:riesgos}}. Planteamos soluciones para dichos obstáculos.
+	\begin{itemize}
+        \item \textbf{Fecha de entrega.} Para intentar asegurar la fecha de entrega, se deberían garantizar entregas parciales. Es más fácil corregir no llegar a una entrega parcial que a todo el proyecto.
+        \item \textbf{Concesión de la patente.} Sí por lo que fuera no nos concedieran la patente la solución sería dejar el trabajo listo, y alargar la fecha de lectura.
+        \item \textbf{Conocimiento del código interno.} En el tiempo de las tareas de desarrollo se ha tenido en cuenta un poco de desconocimiento.
+    \end{itemize}
+    %\subsubsection{Gestión del riesgo}
+    \clearpage
+
+    \section{Presupuesto y sostenibilidad}
+    \subsection{Presupuesto}
+    En esta sección se explicarán los Costos por Actividad (CPA), los Costos Genéricos (CG), la contingencia, los gastos imprevistos y por úlitmo un resumen del presupuesto sumando los gastos mencionados.
+    \subsubsection{Costes por Actividad (CPA)}
+    En este proyecto hay 5 tipo de trabajadores, cada uno tendrá un coste diferente por hora. Independientemente de cual sea el rol, en este proyecto todos los roles explicados a continuación son interpretados por la misma persona.
+    \begin{itemize}
+        \item \textbf{Jefe de proyecto.} Responsable de planificar el proyecto y supervisar que todo vaya bien y se cumplan los roles.
+        \item \textbf{Desarrollador de software.} El encargado de escribir el código que sea necesario para el proyecto y asegurarse de que su calidad es óptima.
+        \item \textbf{Tester.} Encargado de verificar que se cumplen los requisitos del código implementado.
+        \item \textbf{Investigador} Se dedica a investigar las diferentes opciones de estructura y se las trasmite al arquitecto de software.
+        \item \textbf{Arquitecto de software} Con la información obtenida por el investigador el arquitecto diseña la mejor estructura de implementación.
+        \item \textbf{Escritor técnico} Escribe toda la documentación necesaria del proyecto.
+    \end{itemize}
+    En la \textit{Tabla \ref{tab:salarios}} se pueden ver los salarios por rol. Esta tabla se ha elaborado basada en la información de Glassdor~\cite{7}.
+    \begin{table}[H]
+        \begin{center}
+            \begin{tabular}{ |l|c|c| } \hline
+                Rol                       & Salario hora en bruto(\euro)  & Salario bruto + SS(\euro)  \\ \hline
+                Jefe de Proyecto          & 24,50                         & 31,85                      \\ \hline
+                Desarrollador de software & 18,75                         & 24,40                      \\ \hline
+                Tester                    & 14,50                         & 18,85                      \\ \hline
+                Escritor técnico          & 12,50                         & 16,25                      \\ \hline
+                Investigador              & 16,00                         & 20,80                      \\ \hline
+                Arquitecto de software    & 23,00                         & 29,90                      \\  \hline        
+            \end{tabular}
+        \caption{Costes estimador por rol y hora. Fuente: Elaboración Propia}
+        \label{tab:salarios}   
+        \end{center}
+    \end{table}
+    
+    En la \textit{Tabla \ref{tab:costo_personal}} se pueden ver los costes por persona relacionado con la tarea a realizar. Solo se pone la identificación de la tarea, para más información consulten la \textit{Tabla \ref{sec:tareas}}.
+    %\phantom{,0}
+    \begin{table}[H]
+    \begin{center}
+        \begin{tabular}{ |l|r|l|r|r| } \hline
+            Código& Estimación & Rol Asignado              & Precio hora(\euro)  & Coste tarea(\euro)  \\ \hline
+            R1   & 3,0         & Jefe de proyecto          & 31,85        & 95,55        \\ \hline
+            R2   & 4,5         & Jefe de proyecto          & 31,85        & 143,33       \\ \hline
+            R3   & 2,0         & Jefe de proyecto          & 31,85        & 63,70        \\ \hline
+            D1.1 & 35,0        & Escritor técnico          & 16,25        & 568,75       \\ \hline
+            D1.2 & 15,5        & Escritor técnico          & 16,25        & 251,88       \\ \hline
+            D1.3 & 10,0        & Escritor técnico          & 16,25        & 162,50       \\ \hline
+            D1.4 & 14,5        & Escritor técnico          & 16,25        & 235,63       \\ \hline
+            D2   & 5,5         & Escritor técnico          & 16,25        & 89,38        \\ \hline
+            D3   & 4,5         & Escritor técnico          & 16,25        & 73,13        \\ \hline
+            D4   & 20,0        & Escritor técnico          & 16,25        & 325,00       \\ \hline
+            DR1  & 40,0        & Investigador              & 20,80        & 832,00       \\ \hline
+            DR2  & 30,0        & Investigador              & 20,80        & 624,00       \\ \hline
+            DR3  & 30,0        & Arquitecto de software    & 29,90        & 897,00       \\ \hline
+            DR4  & 60,0        & Desarrollador de software & 24,40        & 1464,00      \\ \hline
+            DR5  & 50,0        & Tester                    & 18,85        & 942,50       \\ \hline
+            DR6  & 40,0        & Desarrollador de software & 24,40        & 976,00       \\ \hline
+            DR7  & 16,0        & Escritor técnico          & 16,25        & 260,00       \\ \hline      
+        \end{tabular}
+    \caption{Coste tarea por trabajador. Elaboración propia}
+    \label{tab:costo_personal}
+    \end{center}
+  \end{table}
+  El total de los costes de todas las tareas calculados en la \textit{Tabla \ref{tab:costo_personal}} es de \textbf{8004,33\euro}.  
+    \subsubsection{Costos génericos (CG)}
+    Aquí se analizaran todos los costes no detallados con las tareas.
+    \subparagraph{Costos de material.} Se debe tener en cuenta que todo el material es propiedad de Giesecke+Devirent por lo que el valor es una estimación. Serían los siguientes componentes:
+    \begin{itemize}
+        \item \textbf{Torre hp z240 ~\cite{8}.} Ordenador de sobremesa. \underline{Coste estimado:} \textbf{849,95\euro}.
+        \item \textbf{Omnikey reader~\cite{9}.} Lector de tarjetas inteligentes. \underline{Coste estimado:} \textbf{22,18\euro}.
+        %\item \textbf{Software.} Se supone que es software libre. \underline{Coste estimado:} \textbf{0\euro}.
+        \item \textbf{Software.} 
+            \begin{itemize}
+                \item \textbf{Windows 10 ~\cite{13}.} Sistema operativo del ordenador. \underline{Coste estimado:} \textbf{41,25\euro}.
+                \item \textbf{Bitbucket ~\cite{14}.} Herramienta utilizada para sincronización de repositorios en linea. Necesita git para funcionar. El coste son 30 euros al mes. Se usará 4 meses. \underline{Coste estimado:} \textbf{120\euro}.
+                \item \textbf{Jira ~\cite{15}.} Herramienta utilizada para gestión de tareas. El coste son 14.5
+                euros al mes. Se usará 4 meses. \underline{Coste estimado:} \textbf{58\euro}.
+                \item \textbf{Git.} Herramienta utilizada para la gestión de un repositorio en el propio ordenador. Es software libre. \underline{Coste estimado:} \textbf{0\euro}.
+            \end{itemize}
+    \end{itemize}
+    \underline{Coste estimado total:} \textbf{957,88\euro}
+    \subparagraph{Costos de desplazamiento.} Son 90 días. Son 60 km al día(Rubí-El Prat de llobregat). El vehículo gasta 7l/100km y está a 1,5\euro/l. \underline{Coste estimado:} \textbf{567\euro}. (6,3\euro/día x 90días. Cálculos hechos mirando el consumo del vehículo propio).
+    \subparagraph{Costos de espacio.} Se ha de tener en cuenta que el espacio también es pagado por la empresa por lo que en este trabajo se hace una estimación. El espacio ocupado es de 3x3 = 9$m^{2}$  según un estudio realizado por Indomio.es~\cite{10}, son 11,55\euro/$m^{2}$ al mes. Como son 90 días serían 3 meses.
+    \underline{Coste estimado:} \textbf{311,85\euro}.
+    %\[x^{2}+y^{2}=r^{2}\]
+    \subparagraph{Costos de electricidad.} El consumo del ordenador son 235W en una hora y se trabajará 540 horas. Se estimará a la alza para tener en cuenta los posibles contratiempos. El precio de Kwh en hora punta es de 0,31\euro. \underline{Coste estimado:}\textbf{39,34\euro}.
+    \subparagraph{Amortizaciones.}
+    Las amortizaciones en este proyecto las dividiremos en dos partes las debido al Hardware y las debido al software. 
+    \begin{itemize}
+            \item \textbf{Hardware}. Hacienda permite amortizar el hardware en 3-4 años. Más tarde se ha de renovar por obsolescencia. Esto implica que en el proyecto solo se tiene que pagar una parte proporcional del producto. Para hacer esto necesitaríamos saber la cantidad de horas que se podría haber usado este hardware en el período de amortización. Calculo de horas en el periodo de amortización.
+            La ecuación para la amortización del ordenador sería:
+            \begin{equation*}
+                \text{Total horas} = \text{4 años }  x\text{ }  \frac{\text{52 semanas}}{\text{1 año}} \text{ }x\text{ } \frac{\text{5 días laborables}}{\text{1 semana}} \text{ }x\text{ } \frac{\text{8 h trabajadas}}{\text{1 día laboral}} \text{ }=\text{ } 8320 \text{ horas} 
+            \end{equation*}
+            Para obtener el precio por hora se debería dividir el costo total entre las horas totales del periodo de amortización. Para obtener la amortización debería ser este precio por hora multiplicado por las horas que no se ha usado el hardware, que es lo que nos debería devolver Hacienda:
+            \begin{equation*}
+                \text{Amortización } = \text{ }  \frac{\text{Costo total material}}{\text{horas totales}}\text{ }x\text{ horas sin uso} \text{ }=\text{ } \frac{\text{872,13}}{\text{8320 h}}x\text{ (8320h-540h)} \text{ }= \text{ \textbf{815,53\euro}}
+            \end{equation*}
+         \item \textbf{Software}. Hacienda permite amortizar el Software en un año menos que el hardware 2-3 años. Por parte del software solo podremos amortizar Windows 10 ya que el resto de herramientas de pagan mensualmente o no se pagan. Por lo tanto igual que hemos hecho con el hardware necesitamos calcular la cantidad de horas que podría haber-se usado este windows 10.
+         \begin{equation*}
+                \text{Total horas} = \text{3 años }  x\text{ }  \frac{\text{52 semanas}}{\text{1 año}} \text{ }x\text{ } \frac{\text{5 días laborables}}{\text{1 semana}} \text{ }x\text{ } \frac{\text{8 h trabajadas}}{\text{1 día laboral}} \text{ }=\text{ } 6240 \text{ horas} 
+            \end{equation*}
+            Como indicado anteriormente con el hardware, para obtener el importe que nos devolverá hacienda:
+            \begin{equation*}
+                \text{Amortización } = \text{ }  \frac{\text{Costo total material}}{\text{horas totales}}\text{ }x\text{ horas sin uso} \text{ }=\text{ } \frac{\text{41,25\euro}}{\text{6240 h}}x\text{ (6240h-540h)} \text{ }= \text{ \textbf{37,68 \euro}}
+            \end{equation*}
+    \end{itemize}
+    En consecuencia a lo anterior explicado, tendríamos una amortización total de \textbf{853,21\euro} para el coste material.
+    
+    
+
+    \subparagraph{Resumen gastos genéricos.} Al largo de ésta sección se ha hablado de costos genéricos. En la \textit{Tabla \ref{tab:costos_genericos}} podemos ver un resumen.
+        \begin{table}[H]
+        \begin{center}
+            \begin{tabular}{ |l|r|c|r| } \hline
+                Concepto       & Costo(\euro) & Amortización(\euro) & Total(\euro)     \\ \hline
+                Material       & 957,88       & 853,21              & 104,67             \\ \hline
+                Desplazamiento & 567,00       & -                & 567,00            \\ \hline
+                Espacio        & 311,85       & -                & 311,85            \\ \hline
+                Electricidad   & 167,40       & -                & 167,40           \\ \hline
+            \end{tabular}
+        \caption{Coste total genérico. Elaboración propia}
+        \label{tab:costos_genericos}
+        \end{center}
+        \end{table}
+    El total de los costes genéricos es de \textbf{1150,92\euro}.
+    \subsubsection{Contingencias}
+    Como en todo proyecto los gastos siempre son muy optimistas. Para evitar equivocar-nos hace falta un coste para cubrir obstáculos no previstos que se aplicará al total del presupuesto. En este proyecto la contingencia será de un 15\% sobre el gasto total como podemos ver en la \textit{Tabla \ref{tab:presupuesto}}  
+    \subsubsection{Imprevistos}
+    Los obstáculos posibles de este proyecto se explicaron en la  \textit{Sección \ref{sec:riesgos}}. Cada posible obstáculo puede provocar una sería de imprevistos explicados a continuación y cada imprevisto tiene un coste añadido al presupuesto inicial. Para facilitar el entendimiento estos imprevistos han sido numerados.
+	\subparagraph{Fecha de entrega.} Si se alarga la fecha de entrega, se habrán de imputar más horas. En el peor de los casos las dos tareas fuertes y difíciles tardaran el doble. Estas tareas han sido explicadas en la \textit{Sección \ref{sec:tareas}}. Son las siguientes:
+        \begin{itemize}
+        \setlength{\itemindent}{2em}
+            \item[--] \textbf{I1.1 $\rightarrow$ DR4. Implementación}. Duración de 60 horas, podría ser que se ampliará a 120 horas.
+            \item[--] \textbf{I1.2 $\rightarrow$ DR5. Desarollo del test}. Duración de 50 horas, podría ser que se ampliará a 100 horas.
+        \end{itemize}
+    \subparagraph{Concesión de la patente.} Si la patente no pueda concedida en el tiempo adecuado habrían dos posibilidades:
+        \begin{itemize}
+        \setlength{\itemindent}{2em}
+            \item[--] \textbf{I2.1 $\rightarrow$ Retrasar la presentación de la memoria}. No supondría coste alguno porque el trabajo estaría hecho en el tiempo estipulado.
+            \item[--] \textbf{I2.2 $\rightarrow$ Reescribir la memoria}. Extendería 50 horas las tarea de documentación final. D4, pasaría de 20 horas a 70 horas. 
+        \end{itemize}
+    \subparagraph{Conocimiento del código interno.} Si nos retrasará el conocimiento del código interno las tareas de análisis se verían incrementadas:
+        \begin{itemize}
+        \setlength{\itemindent}{2em}
+            \item[--] \textbf{I3.1 $\rightarrow$ DR1. Análisis gestión memoria.} Duración 40 horas, se podría llegar a ampliar hasta 80 horas.
+            \item[--] \textbf{I3.2 $\rightarrow$ DR2. Análisis implementación antigua.} Duración 30 horas, se podría llegar a ampliar hasta 60 horas.
+        \end{itemize}
+    Los costes de estos improvistos y la probabilidad de que sucedan se puede ver en la \textit{Tabla \ref{tab:imprevistos}}.
+    \begin{table}[H]
+        \begin{center}
+            \begin{tabular}{ |r|r|r|r|r|r|r| } \hline
+                Id & Tarea & Horas extras & precio/h          & Extra (\euro)& Prob (\%) &  Para añadir(\euro) \\ \hline
+                I1.1        & DR4            & 60,00                  & 24,40                & 1464,00              & 20 & 292,80 \\ \hline
+                I1.2        & DR5            & 50,00                  & 18,85                & 942,50               & 30 & 282,75\\ \hline
+                I2.1        & -              & 0,00                   & -                    & 0,00                 & 40 & 0,00\\ \hline
+                I2.2        & D4             & 50,00                  & 16,25                & 812,50               & 40 & 325,00\\ \hline
+                I3.1        & DR1            & 40,00                  & 20,80                & 832,00               & 10 & 83,20\\ \hline
+                I3.2        & DR2            & 30,00                  & 20,80                & 624,00               & 10 & 62,40\\ \hline
+            \end{tabular}
+        \caption{Imprevistos. Elaboración propia}
+        \label{tab:imprevistos}
+        \end{center}
+        \end{table}
+        El coste total de imprevistos que se debería añadir al presupuesto sería la suma de todos los costes de cada imprevistos, estos multiplicados por la probabilidad de que suceda. Esta cálculo es el que tenemos en la \textit{Tabla \ref{tab:imprevistos}}, columna \textit{Para añadir (\euro)}. El total de estos valores sería \textbf{1046,15(\euro).}
+
+    \subsubsection{Estimación de los costes}\label{sec:presupuesto}
+    Al largo del presupuesto se han hecho varias tablas desglosan valores de la \textit{Tabla \ref{tab:presupuesto}} donde se hace un resumen del presupuesto total.
+        \begin{table}[H]
+        \rowcolors{1}{}{white}
+        \begin{center}
+            \begin{tabular}{ |l|r|c|r| } \hline
+                Concepto                    & Importe(\euro)  \\ \hline
+                  R1                         & 95,55           \\ \hline
+                  R2                         & 143,33          \\ \hline
+                  R3                         & 63,70           \\ \hline
+                  D1.1                       & 568,75          \\ \hline
+                  D1.2                       & 251,88          \\ \hline
+                  D1.3                       & 162,50          \\ \hline
+                  D1.4                       & 235,63          \\ \hline
+                  D2                         & 89,38           \\ \hline
+                  D3                         & 73,13           \\ \hline
+                  D4                         & 325,00          \\ \hline
+                  DR1                        & 832,00          \\ \hline
+                  DR2                        & 624,00          \\ \hline
+                  DR3                        & 897,00          \\ \hline
+                  DR4                        & 1464,00         \\ \hline
+                  DR5                        & 942,50          \\ \hline
+                  DR6                        & 976,00          \\ \hline
+                  DR7                        & 260,00          \\ \hline\rowcolor[gray]{.9}
+                TOTAL CPA                    & 8004,33         \\ \hline
+                Material                     & 104,70           \\ \hline
+                Desplazamiento               & 567,00          \\ \hline
+                Espacio                      & 311,85          \\ \hline
+                Electricidad                 & 167,40          \\ \hline\rowcolor[gray]{.9}
+                TOTAL CG                     & 1150,92         \\ \hline\rowcolor[gray]{.8}
+                TOTAL CPA+CG                 & 9155,25         \\ \hline
+                Contingencia(15\%)           & 1373,29         \\ \hline\rowcolor[gray]{.7}
+                Total CPA+CG+Contingencia    & 10528,53        \\ \hline
+                 I1.1                        & 292,80          \\ \hline
+                 I1.2                        & 282,75          \\ \hline
+                 I2.1                        & 0,00            \\ \hline
+                 I2.2                        & 325,00          \\ \hline
+                 I3.1                        & 83,20           \\ \hline
+                 I3.2                        & 62,40           \\ \hline\rowcolor[gray]{.9}
+                Total Imprevistos            & 1046,15         \\ \hline\rowcolor[gray]{.4}\color{white}
+                Total sin IVA                       &\color{white} 11574,68        \\ \hline\rowcolor[gray]{.1}\color{white}
+                TOTAL                       &\color{white} 14005,36        \\ \hline
+            \end{tabular}
+        \caption{Presupuesto final. Elaboración propia}
+        \label{tab:presupuesto}
+        \end{center}
+        \end{table}
+\clearpage
+    \subsubsection{Control de gestión}\label{sec:controldegestion}
+    Es probable que el presupuesto y las horas dedicadas no sean exactamente a las calculada. Por ese motivo, necesitamos definir un modelo que controle las principales desviaciones del presupuesto.
+    Por eso cada vez que se finalice una tarea se tendrá que calcular la desviación de los costos CPA, CG e imprevistos.
+    A continuación se indican las formulas para calcular las desviaciones de los gastos.
+     \begin{itemize}
+        %\setlength{\itemindent}{2em}
+            \item \textbf{Desviación de CPA}. Es muy probable que la tarea se produzca en más o menos tiempo. Por lo que se habrán de ir actualizando el Total CPA.
+                \begin{equation*}
+                    \text{Desviación de CPA} = \sum_{i=1}^n((horasPlanificadas_{i} \text{ }- \text{ }horasReales_{i})\text{ } x \text{ } precioPorHora_{i})
+                \end{equation*}
+                Siendo \textit{i} el identificador de tarea, \textit{n} el numero de tareas total que son 17 y \textit{precioPorHora} el precio del especialista para la tarea identificada con el numero i.
+            \item \textbf{Desviación de CG}. Es muy probable que tardemos más o menos tiempo por lo tanto, por cada hora de más o de menos se tendrá que añadir o reducir costos de electricidad, de alquiler, quitar de la amortización o ir más veces a la oficina, por lo tanto más gasolina. Para seguimiento continuo se irá haciendo por tarea. Y este sería el costo desviado del total de tareas.
+            Las horas totales en la que nos desviamos serian
+            \begin{equation*}
+                \text{totalHorasDesviadas} = \sum_{i=1}^n(horasPlanificadas_{i} \text{ }- \text{ }horasReales_{i})
+            \end{equation*}
+            Con esta formula obtendríamos las horas totales que nos hemos desviado del presupuesto. Ahora nos falta saber cuanto incrementa el precio por cada hora.
+            \begin{itemize}
+                \item \textbf{Material.} Como usaremos el material más horas, la amortización que nos darían sería menor. Por lo que le tendríamos que sumar al presupuesto las horas que no se habían tenido en cuenta por el precio por hora tanto de hardware como del software. Donde la amortización por hora sería coste total entre horas para amortizar.
+                \begin{equation*}
+                    \text{Desviación de Amortización } = \text{ totalHorasDesviadas x }  (\text{ }\frac{\text{872,13\euro}}{\text{8320 h}} + \text{ } \frac{\text{41,25\euro}}{\text{6240 h}} \text{ } )
+                \end{equation*}
+                \item \textbf{Desplazamiento}. Cada 6 horas trabajadas será un día extra, por lo que sería:
+                \begin{equation*}
+                    \text{Desviación de desplazamiento } = (\frac{\text{totalHorasDesviadas}}{\text{6 h}}) \text{x 6,3\euro /día}
+                \end{equation*}
+                La división entre 6h será de números enteros, por lo que de 1 hora a 6 horas el resultado será 1 día.
+                \item \textbf{Espacio}. A partir de una hora más ya será un mes más ya que el alquiler no va por horas. Un mes son, 4 semanas x 5 días laborables x 8h al día, 120 h .Por lo tanto:
+                \begin{equation*}
+                    \text{Desviación de alquiler } = (\frac{\text{totalHorasDesviadas}}{\text{120 h}}) \text{x 11,55\euro /mes}
+                \end{equation*}
+                La división de horas entre 120h, tengamos en cuenta que son números enteros, por lo que de 1 hora a 120 horas el resultado será 1.
+                \item \textbf{Electricidad}. Como gastaremos más horas de luz:
+                \begin{equation*}
+                    \text{Desviación de Desplazamiento } = \sum_{i=1}^n((horasPlanificadas_{i} \text{ }- \text{ }horasReales_{i})\text{ } x \text{ } precioPorKwh)
+                \end{equation*}
+                Siendo \textit{i} el identificador de tarea, \textit{n} el numero de tareas total que son 17 y \textit{precioPorKwh} el precio por Kilowatio hora que es 0,31\euro.
+            \end{itemize}
+            \item \textbf{Desviación de contingencia}. Teniendo en cuenta que la contingencia son 1346,87\euro para imprevistos no contemplados, en el momento que sobrepasemos este dinero se deberá ir sumando.
+            \item \textbf{Desviación de imprevistos}. Teniendo en cuenta que el dinero para imprevistos planificados sería 1046,15\euro, en cuanto se sobrepase esté dinero o se debería coger de la contingencia si aún queda o ir añadiendolo.
+    \end{itemize}
+    \subsection{Sostenibilidad}
+    Se analizará la sostenibilidad del proyecto en los ámbitos ambientales, económicos y sociales.
+    \subsubsection{Proyecto puesto en Producción (PPP)}
+    Incluye la planificación, el desarrollo y la implantación del proyecto.
+    \paragraph{Ambiental}
+    Este proyecto contaminará en su realización de dos maneras:
+    \begin{itemize}
+        \item \textbf{Kwh.} El consumo del ordenador es de 235W y se trabajará 540 horas, un total de \textbf{126 Kwh.}
+        \item \textbf{CO2.} Para ir a la oficina se gastará CO2. Como bien indica \textit{la Vanguardia}~\cite{11} un coche de tamaño medio consume 143g por Km recorrido. Se ira un total de 90 días y se harán 60 km al día, lo que hará un total de 5400 Km recorridos y \textbf{772,2 Kg de CO2 desprendido.}
+    \end{itemize}
+    Para no perjudicar tanto al medio ambiente se planteo la solución de ir en transporte público. El problema era el tiempo invertido por culpa de la localización de la empresa. En transporte público se tardan dos horas y media y en vehículo propio se tarda una media hora. Al final se decidió ir en vehículo propio para no perder 4 horas al día extras, las cuales repercutirían en el presupuesto porque deberían ser pagadas al trabajador.
+    \paragraph{Económico}
+    Como se ha detallado en la \textit{Sección \ref{sec:presupuesto}} y anteriores, donde se incluyen costes de recursos humanos, genéricos y materiales, el presupuesto inicial de es de 14.005,36\euro.
+    \paragraph{Social}
+    Este proyecto aportará mucha experiencia a aquellos que lo desarrollen y un gran nivel de conocimiento del producto.
+    \subsubsection{Vida útil}
+    Que empieza una vez implantado y acaba con su desmantelamiento.  
+    \paragraph{Ambiental}
+    Este proyecto hace que un cliente pueda tener más datos propios en una tarjeta, lo que no cambiará el uso de ella ni la contaminación de el chip.
+    \paragraph{Económico}
+    Es un proyecto que nos permitirá guardar mayor cantidad de datos en casos de hacer actualizaciones del sistema operativo, por lo que es una característica que aporta valor al producto y ganaremos más clientes con ello. Por no decir que esté proyecto se hace porque varios clientes lo han exigido.
+    \paragraph{Social}
+    Este proyecto permite guardar más datos, por lo que se podrán desarrollar muchas más funcionalidades que facilitaran la vida de los que compren dichos productos.
+    \subsubsection{Riesgos}
+    Los riesgos inherentes al propio proyecto durante toda su construcción, vida útil y desmantelamiento.
+    \paragraph{Ambiental}
+    Poniéndonos en el peor de los casos, que mi implementación pudiera llegar a quemar el chip y saliera a producción sin dar-nos cuenta, cosa que es casi improbable pero se debería tener en cuenta. Cada chip, según cita DiarioTi~\cite{12} " la producción de un microchip de dos gramos hace necesario usar 32 litros de agua, 1.6 kilogramos de combustibles fósiles, 700 gramos de carbono y otros gases, además de 72 gramos de distintas substancias químicas." Esto implica que por cada chip que muera por culpa de una mala gestión de memoria, estará contaminando lo mencionado por DiarioTi inútilmente.
+    \paragraph{Económico}
+    Este proyecto no tendría problema de rentabilidad ya que por mucho que se alargara como la venta de chips aporta millones a la empresa no unos simple miles, siempre llegaría un punto que empezaría a ser rentable. Los riesgos y gestión de ellos económicamente han sido explicados en la \textit{Sección \ref{sec:controldegestion}}.
+    \paragraph{Social}
+    Si se desarrollara mal, que es improbable, y matara chips, obviamente perderíamos clientes y perjudicaría tanto a la empresa como a los clientes.
+    \clearpage
+    \bibliographystyle{unsrt}
+    \bibliography{bibliography}
+    
+\end{document}
